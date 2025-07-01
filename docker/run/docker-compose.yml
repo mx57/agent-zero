@@ -1,8 +1,43 @@
+version: '3.8'
+
 services:
   agent-zero:
     container_name: agent-zero
-    image: frdel/agent-zero:latest
+    image: frdel/agent-zero:latest # Or your locally built image e.g., agent-zero-run:local
     volumes:
-      - ./agent-zero:/a0
+      - ./agent-zero:/a0  # Mounts the local ./agent-zero directory into /a0 in the container
+                          # Place your .env file in ./agent-zero/.env on the host
     ports:
-      - "50080:80"
+      - "50080:80" # Web UI
+      - "55022:22" # SSH if enabled and configured inside the container via initialize.sh
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      # - PYTHONUNBUFFERED=1 # Useful for seeing print statements immediately
+      # - LOG_LEVEL=DEBUG # If your app uses this
+    depends_on:
+      ollama:
+        condition: service_started # Basic start dependency, doesn't guarantee Ollama API is ready
+    networks:
+      - agent-zero-network
+
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama # Persists Ollama models on the host
+    networks:
+      - agent-zero-network
+    # Optional: Deploy configuration for GPU access if needed and available
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+networks:
+  agent-zero-network:
+    driver: bridge

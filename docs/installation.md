@@ -135,6 +135,49 @@ Optionally you can map local folders for file persistence:
 > directory. You can access and edit these files directly on your machine, and 
 > the changes will be immediately reflected in the running container.
 
+2.5. Running Agent Zero with Ollama using Docker Compose (Recommended for Ollama users):
+
+For a more integrated setup, especially if you plan to use local models with Ollama, you can use Docker Compose. This will start both the Agent Zero container and an Ollama container, pre-configured to work together.
+
+- **Prerequisites:** Ensure you have Docker Compose installed. Docker Desktop usually includes it. If you installed `docker-ce` on Linux, you might need to install `docker-compose-plugin` or `docker-compose` separately.
+- **Download `docker-compose.yml`:**
+    - Navigate to the `docker/run` directory in the Agent Zero repository (or download the `docker-compose.yml` file from there if you haven't cloned the repository).
+    - Place this `docker-compose.yml` file in a new, empty directory on your machine (e.g., `~/agent-zero-compose` or `C:\agent-zero-compose`).
+- **Prepare `agent-zero` data directory:**
+    - Inside the directory where you placed `docker-compose.yml` (e.g., `~/agent-zero-compose`), create a subdirectory named `agent-zero`.
+    - This `agent-zero` subdirectory will be mounted into the Agent Zero container at `/a0`. Place your `.env` file (for API keys, etc.) inside this `agent-zero` directory (e.g., `~/agent-zero-compose/agent-zero/.env`).
+    - All other Agent Zero data (memory, knowledge, etc.) will also be stored here.
+- **Prepare `ollama_data` directory:**
+    - Inside the directory where you placed `docker-compose.yml`, create another subdirectory named `ollama_data`.
+    - This `ollama_data` subdirectory will be used to persist Ollama models, so you don't have to re-download them each time you restart.
+- **Run Docker Compose:**
+    - Open your terminal, navigate to the directory where you placed the `docker-compose.yml` file (e.g., `cd ~/agent-zero-compose`).
+    - Run the command:
+      ```bash
+      docker-compose up -d
+      ```
+    - This will pull the necessary images (if not already present) and start both Agent Zero and Ollama services in the background (`-d`).
+- **Access Agent Zero Web UI:**
+    - The Agent Zero Web UI will be accessible at `http://localhost:50080`.
+    - The `OLLAMA_BASE_URL` inside the Agent Zero container will automatically be set to `http://ollama:11434` to connect to the Ollama service.
+- **Using Ollama:**
+    - You can now go to Agent Zero's settings and configure Ollama as a provider for your chat, utility, or embedding models.
+    - To pull models into the Ollama service managed by Docker Compose, you can either:
+        - Use the Ollama CLI on your host if you have it installed, ensuring it's configured to talk to `http://localhost:11434` (since port 11434 from the Ollama container is mapped to your host).
+        - Or, `exec` into the Ollama container:
+          ```bash
+          docker exec -it ollama ollama pull <model-name>
+          ```
+          For example: `docker exec -it ollama ollama pull llama3`
+- **Stopping Docker Compose:**
+    - To stop the services, navigate to the directory with `docker-compose.yml` and run:
+      ```bash
+      docker-compose down
+      ```
+
+> [!NOTE]
+> The `docker-compose.yml` file is configured to use the `frdel/agent-zero:latest` image. If you have made local modifications to the Agent Zero code and rebuilt the Docker image locally (e.g., as `agent-zero-run:local`), you'll need to update the `image` field in the `docker-compose.yml` file for the `agent-zero` service accordingly.
+
 3. Configure Agent Zero
 - Refer to the following sections for a full guide on how to configure Agent Zero.
 
