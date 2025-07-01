@@ -586,6 +586,11 @@ class Agent:
         return self.history.output_text(human_label="user", ai_label="assistant")
 
     def get_chat_model(self):
+        if self.config.chat_model.provider == models.ModelProvider.OLLAMA:
+            print(f"Agent {self.agent_name} is using Ollama for chat_model: {self.config.chat_model.name}")
+            print(f"Ollama Base URL for chat_model: {models.get_ollama_base_url()}")
+            if self.config.chat_model.kwargs:
+                print(f"Ollama chat_model kwargs: {self.config.chat_model.kwargs}")
         return models.get_model(
             models.ModelType.CHAT,
             self.config.chat_model.provider,
@@ -594,6 +599,11 @@ class Agent:
         )
 
     def get_utility_model(self):
+        if self.config.utility_model.provider == models.ModelProvider.OLLAMA:
+            print(f"Agent {self.agent_name} is using Ollama for utility_model: {self.config.utility_model.name}")
+            print(f"Ollama Base URL for utility_model: {models.get_ollama_base_url()}")
+            if self.config.utility_model.kwargs:
+                print(f"Ollama utility_model kwargs: {self.config.utility_model.kwargs}")
         return models.get_model(
             models.ModelType.CHAT,
             self.config.utility_model.provider,
@@ -602,6 +612,11 @@ class Agent:
         )
 
     def get_embedding_model(self):
+        if self.config.embeddings_model.provider == models.ModelProvider.OLLAMA:
+            print(f"Agent {self.agent_name} is using Ollama for embeddings_model: {self.config.embeddings_model.name}")
+            print(f"Ollama Base URL for embeddings_model: {models.get_ollama_base_url()}")
+            if self.config.embeddings_model.kwargs:
+                print(f"Ollama embeddings_model kwargs: {self.config.embeddings_model.kwargs}")
         return models.get_model(
             models.ModelType.EMBEDDING,
             self.config.embeddings_model.provider,

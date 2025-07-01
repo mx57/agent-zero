@@ -12,6 +12,7 @@ from langchain_openai import (
 from langchain_community.llms.ollama import Ollama
 from langchain_ollama import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain_core.exceptions import LangChainException
 from langchain_anthropic import ChatAnthropic
 from langchain_groq import ChatGroq
 from langchain_huggingface import (
@@ -104,10 +105,14 @@ def parse_chunk(chunk: Any):
 
 # Ollama models
 def get_ollama_base_url():
-    return (
-        dotenv.get_dotenv_value("OLLAMA_BASE_URL")
-        or f"http://{runtime.get_local_url()}:11434"
-    )
+    base_url = dotenv.get_dotenv_value("OLLAMA_BASE_URL")
+    if not base_url:
+        default_url = f"http://{runtime.get_local_url()}:11434"
+        print(f"OLLAMA_BASE_URL not set, using default: {default_url}")
+        return default_url
+    if not (base_url.startswith("http://") or base_url.startswith("https://")):
+        print(f"Warning: OLLAMA_BASE_URL '{base_url}' does not start with http:// or https://. This might cause connection issues.")
+    return base_url
 
 
 def get_ollama_chat(
@@ -118,12 +123,30 @@ def get_ollama_chat(
 ):
     if not base_url:
         base_url = get_ollama_base_url()
-    return ChatOllama(
-        model=model_name,
-        base_url=base_url,
-        num_ctx=num_ctx,
-        **kwargs,
-    )
+    try:
+        print(f"Initializing Ollama chat model: {model_name} at {base_url} with num_ctx: {num_ctx} and kwargs: {kwargs}")
+        model = ChatOllama(
+            model=model_name,
+            base_url=base_url,
+            num_ctx=num_ctx,
+            **kwargs,
+        )
+        # Attempt a simple interaction to check connectivity if possible, or rely on langchain's internal checks.
+        # For now, we assume initialization success means basic validity.
+        print(f"Successfully initialized Ollama chat model: {model_name}")
+        return model
+    except LangChainException as e:
+        print(f"Error initializing Ollama chat model {model_name} at {base_url}: {e}")
+        # Potentially raise a custom, more user-friendly exception or handle specific common errors.
+        # For example, check if 'Connection refused' is in str(e) to suggest Ollama server issues.
+        if "Connection refused" in str(e):
+            print(f"Hint: Ensure Ollama server is running and accessible at {base_url}.")
+        elif "404" in str(e) and "model" in str(e).lower() and f"'{model_name}'" in str(e).lower(): # Heuristic for model not found
+            print(f"Hint: Model '{model_name}' might not be available on the Ollama server or could be misspelled.")
+        raise  # Re-raise the original exception after logging
+    except Exception as e:
+        print(f"An unexpected error occurred while initializing Ollama chat model {model_name}: {e}")
+        raise
 
 
 def get_ollama_embedding(
@@ -134,9 +157,25 @@ def get_ollama_embedding(
 ):
     if not base_url:
         base_url = get_ollama_base_url()
-    return OllamaEmbeddings(
-        model=model_name, base_url=base_url, num_ctx=num_ctx, **kwargs
-    )
+    try:
+        print(f"Initializing Ollama embedding model: {model_name} at {base_url} with num_ctx: {num_ctx} and kwargs: {kwargs}")
+        embedding = OllamaEmbeddings(
+            model=model_name, base_url=base_url, num_ctx=num_ctx, **kwargs
+        )
+        # Test embedding something simple
+        embedding.embed_query("test")
+        print(f"Successfully initialized Ollama embedding model: {model_name}")
+        return embedding
+    except LangChainException as e:
+        print(f"Error initializing Ollama embedding model {model_name} at {base_url}: {e}")
+        if "Connection refused" in str(e):
+            print(f"Hint: Ensure Ollama server is running and accessible at {base_url}.")
+        elif "404" in str(e) and "model" in str(e).lower() and f"'{model_name}'" in str(e).lower():
+             print(f"Hint: Model '{model_name}' might not be available on the Ollama server or could be misspelled.")
+        raise
+    except Exception as e:
+        print(f"An unexpected error occurred while initializing Ollama embedding model {model_name}: {e}")
+        raise
 
 
 # HuggingFace models
